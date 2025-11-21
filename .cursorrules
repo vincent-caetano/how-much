@@ -22,3 +22,9 @@
 - When only documentation changes (unless explicitly requested)
 - When changes are incomplete or broken
 
+## Project Rules
+
+Additional project-specific rules are organized in separate files in `.cursor/rules/`:
+- **Design System**: See `.cursor/rules/design-system.mdc` for shadcn/ui design system guidelines
+- **Currency Punctuation**: See `.cursor/rules/currency-punctuation.mdc` for detailed rules on handling different number formats when parsing prices
+

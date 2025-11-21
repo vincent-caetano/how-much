@@ -1,0 +1,79 @@
+# Design System - shadcn/ui
+
+## Design System Reference
+
+**Use the [shadcn/ui](https://ui.shadcn.com) design system as the foundation for all UI components and styling.**
+
+### Installation & Reference
+
+- **Installation Docs**: 
+  - Main installation: [https://ui.shadcn.com/docs/installation](https://ui.shadcn.com/docs/installation)
+  - Next.js specific: [https://ui.shadcn.com/docs/installation/next](https://ui.shadcn.com/docs/installation/next)
+  - React Router: [https://ui.shadcn.com/docs/installation/react-router](https://ui.shadcn.com/docs/installation/react-router)
+  - React 19 compatibility: [https://ui.shadcn.com/docs/react-19](https://ui.shadcn.com/docs/react-19)
+- **Note**: The official installation uses React frameworks (Next.js 15, React Router, React 19, etc.), but this browser extension uses vanilla JavaScript
+- **Adaptation**: Adapt shadcn/ui React components to vanilla JS/HTML for browser extension use
+- **Component Reference**: Use the React framework installations as references for component structure, but convert React/JSX to vanilla JavaScript
+- **React 19 Note**: While React 19 compatibility info is for React projects, it's useful for understanding component patterns and design system updates
+
+### Core Principles
+
+- **Open Source, Open Code**: shadcn/ui provides components you can customize, extend, and build on
+- **Component-Based**: Use shadcn/ui components as building blocks for the UI
+- **Consistent Styling**: Follow shadcn/ui design tokens and patterns for consistency
+
+### Component Usage
+
+When creating or updating UI components:
+
+1. **Check shadcn/ui first**: Before building custom components, check if shadcn/ui has a component that fits
+2. **Reference the documentation**: Use [https://ui.shadcn.com](https://ui.shadcn.com) for:
+   - Component examples (adapt React components to vanilla JS)
+   - Design patterns
+   - Color schemes
+   - Typography
+   - Spacing and layout
+3. **Installation reference**: Use [https://ui.shadcn.com/docs/installation](https://ui.shadcn.com/docs/installation) as a guide for:
+   - Component structure and patterns
+   - Styling approach
+   - Design tokens
+
+### Browser Extension Considerations
+
+Since this is a browser extension with CSP (Content Security Policy) restrictions:
+
+- **Framework adaptation**: This is a vanilla JS extension, not Next.js - adapt React components from shadcn/ui
+- **Inline styles**: Components may need to be adapted with inline styles for CSP compliance
+- **No external CDNs**: Include shadcn/ui styles and patterns directly in the extension
+- **Self-contained**: All design system code should be bundled with the extension
+- **No React dependencies**: Convert React/JSX components to vanilla JS/HTML
+
+### Design Tokens
+
+Follow shadcn/ui design tokens for:
+- Colors (background, foreground, primary, muted, destructive, etc.)
+- Border radius
+- Shadows
+- Spacing (padding, margins)
+- Typography scales
+
+### Example Components Available
+
+shadcn/ui provides components such as:
+- Buttons
+- Inputs
+- Select/Dropdown
+- Cards
+- Forms
+- Dialogs
+- And many more...
+
+Reference the [shadcn/ui documentation](https://ui.shadcn.com) for the full component library.
+
+### Implementation Pattern
+
+When implementing shadcn/ui components:
+1. Review the component documentation on shadcn/ui
+2. Adapt the component code to work within browser extension CSP constraints
+3. Ensure styles are self-contained (no external dependencies)
+4. Maintain consistency with shadcn/ui design patterns
