@@ -59,21 +59,68 @@ function App() {
 
   const formatNumber = useCallback((value, currencyCode) => {
     if (!value) return ''
-    const cleanValue = value.toString().replace(/[^\d.,]/g, '')
-    const num = parseFloat(cleanValue.replace(/,/g, '').replace(/\./g, ''))
-    if (isNaN(num)) return ''
     
     const info = getCurrencyInfo(currencyCode)
+    let cleanValue = value.toString().replace(/[^\d.,]/g, '')
+    
+    // Detect if there's a decimal separator in the input
+    const hasDecimal = cleanValue.includes('.') || cleanValue.includes(',')
+    
+    // Parse the number, handling both integer and decimal inputs
+    let num
+    if (info.decimal === ',' && info.separator === '.') {
+      // Brazilian/European format: dots are thousands, comma is decimal
+      // If there's a comma, it's the decimal separator
+      if (cleanValue.includes(',')) {
+        // Has decimal: remove dots (thousands), replace comma with dot for parsing
+        cleanValue = cleanValue.replace(/\./g, '').replace(',', '.')
+      } else if (cleanValue.includes('.')) {
+        // Only dots: could be thousands or decimal (ambiguous)
+        // If last dot is followed by 1-2 digits, treat as decimal
+        const parts = cleanValue.split('.')
+        const lastPart = parts[parts.length - 1]
+        if (parts.length === 2 && lastPart.length <= 2) {
+          // Treat as decimal
+          cleanValue = cleanValue.replace('.', '.')
+        } else {
+          // Treat as thousands separators
+          cleanValue = cleanValue.replace(/\./g, '')
+        }
+      }
+      num = parseFloat(cleanValue)
+    } else {
+      // USD format: commas are thousands, dot is decimal
+      // If there's a dot, it's the decimal separator
+      if (cleanValue.includes('.')) {
+        // Has decimal: remove commas (thousands), keep dot
+        cleanValue = cleanValue.replace(/,/g, '')
+      } else if (cleanValue.includes(',')) {
+        // Only commas: thousands separators
+        cleanValue = cleanValue.replace(/,/g, '')
+      }
+      num = parseFloat(cleanValue)
+    }
+    
+    if (isNaN(num)) return ''
+    
+    // Format with appropriate decimal places
+    const hasDecimals = hasDecimal && num % 1 !== 0
     try {
       return num.toLocaleString(info.locale, { 
-        minimumFractionDigits: 0, 
-        maximumFractionDigits: 0 
+        minimumFractionDigits: hasDecimals ? 2 : 0, 
+        maximumFractionDigits: hasDecimals ? 2 : 0 
       })
     } catch (e) {
       if (info.decimal === ',' && info.separator === '.') {
-        return num.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        return num.toLocaleString('pt-BR', { 
+          minimumFractionDigits: hasDecimals ? 2 : 0, 
+          maximumFractionDigits: hasDecimals ? 2 : 0 
+        })
       } else {
-        return num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        return num.toLocaleString('en-US', { 
+          minimumFractionDigits: hasDecimals ? 2 : 0, 
+          maximumFractionDigits: hasDecimals ? 2 : 0 
+        })
       }
     }
   }, [])
@@ -361,7 +408,7 @@ function App() {
 
           <div className="space-y-2 relative">
             <Label htmlFor="salary" className="sr-only">Monthly Net Salary</Label>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-xl pointer-events-none z-10 text-black opacity-50">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-base md:text-sm pointer-events-none z-10 text-black opacity-50 leading-[1.5]">
               {currencyDisplay}
             </div>
             <Input
