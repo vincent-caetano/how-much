@@ -63,39 +63,40 @@ function App() {
     const info = getCurrencyInfo(currencyCode)
     let cleanValue = value.toString().replace(/[^\d.,]/g, '')
     
-    // Detect if there's a decimal separator in the input
-    const hasDecimal = cleanValue.includes('.') || cleanValue.includes(',')
-    
-    // Parse the number, handling both integer and decimal inputs
+    // Parse the number based on currency format
     let num
+    let hasDecimal = false
+    
     if (info.decimal === ',' && info.separator === '.') {
       // Brazilian/European format: dots are thousands, comma is decimal
-      // If there's a comma, it's the decimal separator
       if (cleanValue.includes(',')) {
-        // Has decimal: remove dots (thousands), replace comma with dot for parsing
+        // Has decimal separator (comma)
+        hasDecimal = true
         cleanValue = cleanValue.replace(/\./g, '').replace(',', '.')
       } else if (cleanValue.includes('.')) {
-        // Only dots: could be thousands or decimal (ambiguous)
-        // If last dot is followed by 1-2 digits, treat as decimal
+        // Only dots: check if it's a decimal or thousands
         const parts = cleanValue.split('.')
         const lastPart = parts[parts.length - 1]
         if (parts.length === 2 && lastPart.length <= 2) {
-          // Treat as decimal
-          cleanValue = cleanValue.replace('.', '.')
+          // Likely a decimal (e.g., "123.45")
+          hasDecimal = true
         } else {
-          // Treat as thousands separators
+          // Thousands separators
           cleanValue = cleanValue.replace(/\./g, '')
         }
+      } else {
+        // No separators, just digits
+        cleanValue = cleanValue
       }
       num = parseFloat(cleanValue)
     } else {
       // USD format: commas are thousands, dot is decimal
-      // If there's a dot, it's the decimal separator
       if (cleanValue.includes('.')) {
-        // Has decimal: remove commas (thousands), keep dot
+        // Has decimal separator (dot)
+        hasDecimal = true
         cleanValue = cleanValue.replace(/,/g, '')
-      } else if (cleanValue.includes(',')) {
-        // Only commas: thousands separators
+      } else {
+        // No decimal, remove thousands separators
         cleanValue = cleanValue.replace(/,/g, '')
       }
       num = parseFloat(cleanValue)
@@ -103,23 +104,23 @@ function App() {
     
     if (isNaN(num)) return ''
     
-    // Format with appropriate decimal places
-    const hasDecimals = hasDecimal && num % 1 !== 0
+    // Format with decimals if the original input had decimals
+    const decimalPlaces = hasDecimal && num % 1 !== 0 ? 2 : 0
     try {
       return num.toLocaleString(info.locale, { 
-        minimumFractionDigits: hasDecimals ? 2 : 0, 
-        maximumFractionDigits: hasDecimals ? 2 : 0 
+        minimumFractionDigits: decimalPlaces, 
+        maximumFractionDigits: decimalPlaces 
       })
     } catch (e) {
       if (info.decimal === ',' && info.separator === '.') {
         return num.toLocaleString('pt-BR', { 
-          minimumFractionDigits: hasDecimals ? 2 : 0, 
-          maximumFractionDigits: hasDecimals ? 2 : 0 
+          minimumFractionDigits: decimalPlaces, 
+          maximumFractionDigits: decimalPlaces 
         })
       } else {
         return num.toLocaleString('en-US', { 
-          minimumFractionDigits: hasDecimals ? 2 : 0, 
-          maximumFractionDigits: hasDecimals ? 2 : 0 
+          minimumFractionDigits: decimalPlaces, 
+          maximumFractionDigits: decimalPlaces 
         })
       }
     }
@@ -260,10 +261,27 @@ function App() {
 
   const handleSalaryChange = (e) => {
     const value = e.target.value
-    const numValue = parseFormattedNumber(value, currency || 'USD')
+    const currentCurrency = currency || 'USD'
+    const info = getCurrencyInfo(currentCurrency)
     
-    if (currency && currencyInfo[currency] && numValue > 0) {
-      setSalary(formatNumber(numValue.toString(), currency))
+    // Allow user to type freely, including decimal separator
+    if (currentCurrency && currencyInfo[currentCurrency] && value) {
+      // Check if the value ends with a decimal separator (user might be typing decimals)
+      const endsWithDecimal = value.endsWith(info.decimal)
+      
+      if (endsWithDecimal) {
+        // User is typing a decimal, don't format yet - let them finish
+        setSalary(value)
+      } else {
+        // Parse and format the number
+        const numValue = parseFormattedNumber(value, currentCurrency)
+        if (!isNaN(numValue) && numValue >= 0) {
+          // Use the original value for formatting to preserve decimal input
+          setSalary(formatNumber(value, currentCurrency))
+        } else {
+          setSalary(value)
+        }
+      }
     } else {
       setSalary(value)
     }
