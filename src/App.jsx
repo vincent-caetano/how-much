@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, ChevronsUpDown, Globe, X, Plus } from 'lucide-react'
+import { Check, ChevronsUpDown, Globe, X, Plus, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,6 +83,7 @@ function App() {
   const [language, setLanguage] = useState('en')
   const [whitelist, setWhitelist] = useState([])
   const [siteInput, setSiteInput] = useState('')
+  const [expandedGroups, setExpandedGroups] = useState(new Set())
 
   const formatNumber = useCallback((value, currencyCode) => {
     if (!value) return ''
@@ -341,6 +342,57 @@ function App() {
     }
   }
   
+  const getBaseDomain = (domain) => {
+    // Extract base domain name (e.g., "amazon" from "amazon.com", "amazon.co.uk")
+    const parts = domain.split('.')
+    if (parts.length <= 2) {
+      return parts[0]
+    }
+    // For multi-part TLDs (e.g., co.uk, com.au), take first two parts
+    // Check if second part is a common TLD component
+    const tldComponents = ['co', 'com', 'org', 'net', 'edu', 'gov']
+    if (tldComponents.includes(parts[parts.length - 2])) {
+      return parts[parts.length - 3] || parts[0]
+    }
+    return parts[parts.length - 2] || parts[0]
+  }
+  
+  const groupDomainsByBase = (domains) => {
+    const groups = {}
+    domains.forEach(domain => {
+      const base = getBaseDomain(domain)
+      if (!groups[base]) {
+        groups[base] = []
+      }
+      groups[base].push(domain)
+    })
+    return groups
+  }
+  
+  const toggleGroup = (groupName) => {
+    setExpandedGroups(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(groupName)) {
+        newSet.delete(groupName)
+      } else {
+        newSet.add(groupName)
+      }
+      return newSet
+    })
+  }
+  
+  const handleRemoveGroup = (groupName, domains) => {
+    const newWhitelist = whitelist.filter(site => !domains.includes(site))
+    setWhitelist(newWhitelist)
+    
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ whitelist: newWhitelist }, () => {
+        setStatus({ show: true, message: `Removed ${domains.length} site(s) from whitelist` })
+        setTimeout(() => setStatus({ show: false, message: '' }), 2000)
+      })
+    }
+  }
+  
   const handleAddSite = () => {
     const normalizedSite = normalizeSiteUrl(siteInput)
     if (!normalizedSite) return
@@ -383,9 +435,9 @@ function App() {
       <div className="absolute top-6 right-6">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <Globe className="h-4 w-4" />
-              <span className="sr-only">Select language</span>
+            <Button variant="ghost" size="sm" className="h-8 gap-2">
+              <span>{selectedLanguage.flag}</span>
+              <span className="text-sm">{selectedLanguage.name}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -546,23 +598,81 @@ function App() {
               </p>
             ) : (
               <div className="space-y-2">
-                {whitelist.map((site) => (
-                  <div
-                    key={site}
-                    className="flex items-center justify-between p-2 border rounded-md hover:bg-accent transition-colors"
-                  >
-                    <span className="text-sm font-medium">{site}</span>
-                    <Button
-                      onClick={() => handleRemoveSite(site)}
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6"
-                    >
-                      <X className="h-4 w-4" />
-                      <span className="sr-only">Remove site</span>
-                    </Button>
-                  </div>
-                ))}
+                {Object.entries(groupDomainsByBase(whitelist))
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .map(([groupName, domains]) => {
+                    const isExpanded = expandedGroups.has(groupName)
+                    const isGroup = domains.length > 1
+                    
+                    return (
+                      <div key={groupName} className="border rounded-md overflow-hidden">
+                        {isGroup ? (
+                          <>
+                            <div
+                              className="flex items-center justify-between p-2 hover:bg-accent transition-colors cursor-pointer"
+                              onClick={() => toggleGroup(groupName)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <span className="text-sm font-medium capitalize">{groupName}</span>
+                                <span className="text-xs text-muted-foreground">({domains.length})</span>
+                              </div>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemoveGroup(groupName, domains)
+                                }}
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                              >
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">Remove group</span>
+                              </Button>
+                            </div>
+                            {isExpanded && (
+                              <div className="border-t bg-muted/30">
+                                {domains.sort().map((site) => (
+                                  <div
+                                    key={site}
+                                    className="flex items-center justify-between px-4 py-2 hover:bg-accent/50 transition-colors"
+                                  >
+                                    <span className="text-sm text-muted-foreground">{site}</span>
+                                    <Button
+                                      onClick={() => handleRemoveSite(site)}
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6"
+                                    >
+                                      <X className="h-4 w-4" />
+                                      <span className="sr-only">Remove site</span>
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="flex items-center justify-between p-2 hover:bg-accent transition-colors">
+                            <span className="text-sm font-medium">{domains[0]}</span>
+                            <Button
+                              onClick={() => handleRemoveSite(domains[0])}
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                            >
+                              <X className="h-4 w-4" />
+                              <span className="sr-only">Remove site</span>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
               </div>
             )}
           </div>
