@@ -34,6 +34,9 @@ export default defineConfig({
       '@': resolve(__dirname, './src'),
     },
   },
-  publicDir: false,
+  publicDir: 'public',
+  server: {
+    port: 5173,
+  },
 })
 
