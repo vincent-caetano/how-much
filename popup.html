@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Time Cost Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     /* shadcn design system - inline styles for browser extension CSP compliance */
     * {
@@ -32,9 +35,48 @@
     body {
       width: 320px;
       min-height: 400px;
-      background: linear-gradient(to bottom right, hsl(210 40% 98%), hsl(210 40% 96.1%));
+      background: hsl(210 40% 98%);
       color: hsl(var(--foreground));
       padding: 24px;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .logo {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    
+    .logo img {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+      object-fit: contain;
+    }
+    
+    .title {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 18px;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .title-word-1 {
+      color: hsl(var(--foreground));
+    }
+    
+    .title-word-2 {
+      color: hsl(142.1 70.6% 45.3%);
     }
     
     .card {
@@ -57,31 +99,19 @@
       width: 100%;
     }
     
-    .currency-display-group {
-      display: flex;
-      gap: 12px;
-      width: 100%;
-    }
-    
-    .currency-display-box {
-      flex: 0 0 auto;
-      min-width: 100px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 2.5rem;
-      border-radius: calc(var(--radius) - 2px);
-      border: 1px solid hsl(var(--input));
-      background-color: hsl(var(--background));
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: hsl(var(--foreground));
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    }
-    
     .salary-input-group {
-      flex: 1;
+      width: 100%;
+      position: relative;
+    }
+    
+    .input-flag {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.25rem;
+      pointer-events: none;
+      z-index: 1;
     }
     
     .label {
@@ -95,7 +125,7 @@
       border-radius: calc(var(--radius) - 2px);
       border: 1px solid hsl(var(--input));
       background-color: hsl(var(--background));
-      padding: 0.5rem 0.75rem;
+      padding: 0.5rem 0.75rem 0.5rem 3rem;
       font-size: 0.875rem;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -220,33 +250,36 @@
   </style>
 </head>
 <body>
+  <!-- Header with Logo and Title -->
+  <div class="header">
+    <div class="logo">
+      <img src="icons/icon128.png" alt="How Much Logo">
+    </div>
+    <div class="title">
+      <span class="title-word-1">HOW</span><span class="title-word-2">MUCH?</span>
+    </div>
+  </div>
+
   <div class="card">
     <!-- Top: Currency Selector -->
     <div class="form-group currency-selector-group">
       <label for="currency" class="label">Choose a currency</label>
       <select id="currency" class="select">
-        <option value="" disabled selected>Choose a currency</option>
-        <option value="USD">USD ($)</option>
-        <option value="EUR">EUR (€)</option>
-        <option value="BRL">BRL (R$)</option>
+        <option value="" disabled selected>Loading currencies...</option>
       </select>
     </div>
 
-    <!-- Middle: Currency Display + Salary Input (side by side) -->
-    <div class="currency-display-group">
-      <div class="currency-display-box" id="currencyDisplay">
-        -
-      </div>
-      <div class="form-group salary-input-group">
-        <label for="salary" class="label">Monthly Net Salary</label>
-        <input 
-          type="text" 
-          id="salary" 
-          class="input" 
-          placeholder="0"
-          inputmode="numeric"
-        >
-      </div>
+    <!-- Middle: Salary Input with Flag -->
+    <div class="form-group salary-input-group">
+      <label for="salary" class="label">Monthly Net Salary</label>
+      <div class="input-flag" id="currencyDisplay">-</div>
+      <input 
+        type="text" 
+        id="salary" 
+        class="input" 
+        placeholder="0"
+        inputmode="numeric"
+      >
     </div>
 
     <!-- Bottom: Save Button -->
