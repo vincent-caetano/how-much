@@ -21,9 +21,89 @@ const US_MONTHLY_MINIMUM_WAGE = 1256.67;
 
 let userSalary = US_MONTHLY_MINIMUM_WAGE;
 let userCurrency = 'USD';
+let whitelist = [];
+
+// Default whitelist sites for the extension
+const DEFAULT_WHITELIST = [
+  'google.com',
+  'amazon.com',
+  'amazon.co.uk',
+  'amazon.de',
+  'amazon.fr',
+  'amazon.it',
+  'amazon.es',
+  'amazon.ca',
+  'amazon.com.au',
+  'amazon.co.jp',
+  'ebay.com',
+  'ebay.co.uk',
+  'ebay.de',
+  'walmart.com',
+  'target.com',
+  'bestbuy.com',
+  'costco.com',
+  'alibaba.com',
+  'shopify.com',
+  'etsy.com',
+  'aliexpress.com'
+];
+
+// Helper function to normalize domain (remove www. prefix and convert to lowercase)
+function normalizeDomain(domain) {
+  return domain.replace(/^www\./, '').toLowerCase();
+}
+
+// Helper function to get normalized domain from URL
+function getDomainFromUrl(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    return normalizeDomain(hostname);
+  } catch (e) {
+    // If URL parsing fails, try simple string manipulation
+    const hostname = url.replace(/^https?:\/\//, '').split('/')[0];
+    return normalizeDomain(hostname);
+  }
+}
+
+// Helper function to check if current domain is in whitelist
+function isWhitelisted(domain) {
+  // Normalize domain for comparison
+  const normalizedDomain = normalizeDomain(domain);
+  
+  // Check if domain matches exactly
+  if (whitelist.includes(normalizedDomain)) {
+    return true;
+  }
+  
+  // Check if domain is a subdomain of a whitelisted domain
+  // e.g., "www.amazon.com" matches "amazon.com" (after normalization, both become "amazon.com")
+  // e.g., "shop.amazon.com" matches "amazon.com"
+  for (const whitelistedDomain of whitelist) {
+    const normalizedWhitelisted = normalizeDomain(whitelistedDomain);
+    
+    // Exact match
+    if (normalizedDomain === normalizedWhitelisted) {
+      return true;
+    }
+    
+    // Check if current domain is a subdomain of whitelisted domain
+    // e.g., "shop.amazon.com" ends with ".amazon.com"
+    if (normalizedDomain.endsWith('.' + normalizedWhitelisted)) {
+      return true;
+    }
+    
+    // Check if whitelisted domain is a subdomain of current domain
+    // e.g., "amazon.com" should match if whitelist has "shop.amazon.com" (though this is less common)
+    if (normalizedWhitelisted.endsWith('.' + normalizedDomain)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
 
 // Main entry point
-chrome.storage.local.get(['userSalary', 'userCurrency'], (data) => {
+chrome.storage.local.get(['userSalary', 'userCurrency', 'whitelist'], (data) => {
   if (data.userSalary && data.userCurrency) {
     userSalary = parseFloat(data.userSalary);
     userCurrency = data.userCurrency;
@@ -32,7 +112,26 @@ chrome.storage.local.get(['userSalary', 'userCurrency'], (data) => {
     userSalary = US_MONTHLY_MINIMUM_WAGE;
     userCurrency = 'USD';
   }
-  init();
+  
+  // Load whitelist (normalize all domains by removing www. and converting to lowercase)
+  if (data.whitelist && Array.isArray(data.whitelist) && data.whitelist.length > 0) {
+    whitelist = data.whitelist.map(domain => normalizeDomain(domain));
+  } else {
+    // Use default whitelist if none is saved
+    whitelist = DEFAULT_WHITELIST.map(domain => normalizeDomain(domain));
+    // Save defaults to storage
+    chrome.storage.local.set({ whitelist: DEFAULT_WHITELIST });
+  }
+  
+  // Check if current domain is whitelisted before initializing
+  const currentDomain = getDomainFromUrl(window.location.href);
+  
+  if (isWhitelisted(currentDomain)) {
+    init();
+  } else {
+    // Domain is not whitelisted, do nothing
+    console.log('TimeCost: Domain not whitelisted, skipping processing:', currentDomain);
+  }
 });
 
 function init() {
