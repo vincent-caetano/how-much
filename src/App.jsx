@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Check, ChevronsUpDown, Globe } from 'lucide-react'
+import { Check, ChevronsUpDown, Globe, X, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Command,
   CommandEmpty,
@@ -55,6 +56,8 @@ function App() {
   const [error, setError] = useState({ field: null, message: '' })
   const [open, setOpen] = useState(false)
   const [language, setLanguage] = useState('en')
+  const [whitelist, setWhitelist] = useState([])
+  const [siteInput, setSiteInput] = useState('')
 
   const formatNumber = useCallback((value, currencyCode) => {
     if (!value) return ''
@@ -163,7 +166,7 @@ function App() {
 
   const loadSavedSettings = useCallback(() => {
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.get(['userSalary', 'userCurrency', 'userLanguage'], (data) => {
+      chrome.storage.local.get(['userSalary', 'userCurrency', 'userLanguage', 'whitelist'], (data) => {
         // Set default currency to USD if not saved
         if (data.userCurrency && currencyInfo[data.userCurrency]) {
           setCurrency(data.userCurrency)
@@ -189,6 +192,10 @@ function App() {
         
         if (data.userLanguage) {
           setLanguage(data.userLanguage)
+        }
+        
+        if (data.whitelist && Array.isArray(data.whitelist)) {
+          setWhitelist(data.whitelist)
         }
       })
     } else {
@@ -291,6 +298,51 @@ function App() {
     }
   }
 
+  const normalizeSiteUrl = (url) => {
+    try {
+      // Remove protocol and www
+      const normalized = url.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
+      return normalized.toLowerCase().trim()
+    } catch (e) {
+      // If URL parsing fails, return cleaned input
+      return url.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
+    }
+  }
+  
+  const handleAddSite = () => {
+    const normalizedSite = normalizeSiteUrl(siteInput)
+    if (!normalizedSite) return
+    
+    if (whitelist.includes(normalizedSite)) {
+      setStatus({ show: true, message: 'Site already in whitelist' })
+      setTimeout(() => setStatus({ show: false, message: '' }), 2000)
+      return
+    }
+    
+    const newWhitelist = [...whitelist, normalizedSite]
+    setWhitelist(newWhitelist)
+    setSiteInput('')
+    
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ whitelist: newWhitelist }, () => {
+        setStatus({ show: true, message: 'Site added to whitelist' })
+        setTimeout(() => setStatus({ show: false, message: '' }), 2000)
+      })
+    }
+  }
+  
+  const handleRemoveSite = (site) => {
+    const newWhitelist = whitelist.filter(s => s !== site)
+    setWhitelist(newWhitelist)
+    
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ whitelist: newWhitelist }, () => {
+        setStatus({ show: true, message: 'Site removed from whitelist' })
+        setTimeout(() => setStatus({ show: false, message: '' }), 2000)
+      })
+    }
+  }
+
   const selectedCurrency = currencies.find(curr => curr.code === currency)
   const selectedLanguage = languages.find(lang => lang.code === language) || languages[0]
 
@@ -331,7 +383,13 @@ function App() {
         </h1>
       </div>
 
-      <div className="space-y-4">
+      <Tabs defaultValue="home" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="home">Home</TabsTrigger>
+          <TabsTrigger value="by-site">By Site</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="home" className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="currency" className="sr-only">Choose a currency</Label>
           <Popover open={open} onOpenChange={setOpen}>
@@ -419,7 +477,76 @@ function App() {
             </AlertDescription>
           </Alert>
         )}
-      </div>
+        </TabsContent>
+        
+        <TabsContent value="by-site" className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="site-input">Add Site to Whitelist</Label>
+            <p className="text-sm text-muted-foreground">
+              Add sites where the extension should modify pages. Only whitelisted sites will be modified.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                id="site-input"
+                type="text"
+                placeholder="example.com or www.example.com"
+                value={siteInput}
+                onChange={(e) => setSiteInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddSite()
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button onClick={handleAddSite} size="icon" variant="outline">
+                <Plus className="h-4 w-4" />
+                <span className="sr-only">Add site</span>
+              </Button>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Whitelisted Sites</Label>
+            {whitelist.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">
+                No sites in whitelist. Add a site above to get started.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {whitelist.map((site) => (
+                  <div
+                    key={site}
+                    className="flex items-center justify-between p-2 border rounded-md hover:bg-accent transition-colors"
+                  >
+                    <span className="text-sm font-medium">{site}</span>
+                    <Button
+                      onClick={() => handleRemoveSite(site)}
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Remove site</span>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {status.show && (
+            <Alert variant="success" className="animate-in slide-in-from-top-5 duration-300">
+              <AlertDescription className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {status.message}
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
