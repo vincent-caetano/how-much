@@ -393,7 +393,7 @@ function App() {
     
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.set({ whitelist: newWhitelist }, () => {
-        setStatus({ show: true, message: `Removed ${domains.length} site(s) from whitelist` })
+        setStatus({ show: true, message: t('siteRemovedFromWhitelist', language) })
         setTimeout(() => setStatus({ show: false, message: '' }), 2000)
       })
     }
@@ -571,15 +571,15 @@ function App() {
         
         <TabsContent value="by-site" className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="site-input">Add Site to Whitelist</Label>
+            <Label htmlFor="site-input">{t('addSiteToWhitelist', language)}</Label>
             <p className="text-sm text-muted-foreground">
-              Add sites where the extension should modify pages. Only whitelisted sites will be modified.
+              {t('addSiteDescription', language)}
             </p>
             <div className="flex gap-2">
               <Input
                 id="site-input"
                 type="text"
-                placeholder="example.com or www.example.com"
+                placeholder={t('sitePlaceholder', language)}
                 value={siteInput}
                 onChange={(e) => setSiteInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -591,16 +591,16 @@ function App() {
               />
               <Button onClick={handleAddSite} size="icon" variant="outline">
                 <Plus className="h-4 w-4" />
-                <span className="sr-only">Add site</span>
+                <span className="sr-only">{t('addSite', language)}</span>
               </Button>
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label>Whitelisted Sites</Label>
+            <Label>{t('whitelistedSites', language)}</Label>
             {whitelist.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">
-                No sites in whitelist. Add a site above to get started.
+                {t('noSitesInWhitelist', language)}
               </p>
             ) : (
               <div className="space-y-2">
@@ -645,7 +645,7 @@ function App() {
                                 className="h-6 w-6"
                               >
                                 <X className="h-4 w-4" />
-                                <span className="sr-only">Remove group</span>
+                                <span className="sr-only">{t('removeGroup', language)}</span>
                               </Button>
                             </div>
                             {isExpanded && (
@@ -673,7 +673,7 @@ function App() {
                                       className="h-6 w-6"
                                     >
                                       <X className="h-4 w-4" />
-                                      <span className="sr-only">Remove site</span>
+                                      <span className="sr-only">{t('removeSite', language)}</span>
                                     </Button>
                                   </div>
                                 ))}
