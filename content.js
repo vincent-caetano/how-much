@@ -83,12 +83,69 @@ function processNode(textNode) {
       // 2. Clean the string to get a raw number
       let cleanString = match.replace(/[^\d.,]/g, '').trim();
       
-      // Handle Decimal/Thousand separators based on currency conventions
-      // BRL/EUR: dot = thousands separator, comma = decimal separator (1.000,50)
-      // USD: comma = thousands separator, dot = decimal separator (1,000.50)
-      let priceValue = 0;
+      // 3. Detect number format by pattern, not just currency
+      // This is important because Google may show BRL prices in USD format
+      // USD format: comma for thousands, dot for decimals (e.g., 2,789.07)
+      // Brazilian/European format: dot for thousands, comma for decimals (e.g., 2.789,07)
+      let isUSDFormat = false;
       
-      if (detectedCurrency === 'BRL' || detectedCurrency === 'EUR') {
+      // Check for USD format pattern: comma followed by 3 digits, then dot with 1-2 digits
+      // Also check: dot with 1-2 digits at the end (decimal)
+      const usdPattern = /,\d{3}\./; // e.g., ",789."
+      const brlPattern = /\.\d{3},/; // e.g., ".789,"
+      
+      if (usdPattern.test(cleanString)) {
+        // Definitely USD format (e.g., 2,789.07)
+        isUSDFormat = true;
+      } else if (brlPattern.test(cleanString)) {
+        // Definitely Brazilian/European format (e.g., 2.789,07)
+        isUSDFormat = false;
+      } else if (cleanString.includes('.') && cleanString.includes(',')) {
+        // Has both - determine by position
+        const dotIndex = cleanString.lastIndexOf('.');
+        const commaIndex = cleanString.lastIndexOf(',');
+        // Last separator wins (usually the decimal separator comes last)
+        isUSDFormat = dotIndex > commaIndex;
+      } else if (cleanString.includes('.')) {
+        // Only dot - check if it looks like decimal or thousands
+        const parts = cleanString.split('.');
+        const lastPart = parts[parts.length - 1];
+        // If last part is 1-2 digits, it's likely a decimal (USD format)
+        // If last part is 3 digits and there are multiple parts, it's likely thousands (BR/EU format)
+        if (parts.length === 2 && lastPart.length <= 2) {
+          isUSDFormat = true;
+        } else if (parts.length > 2 || lastPart.length === 3) {
+          isUSDFormat = false; // Likely thousands separators
+        } else {
+          // Default: assume USD format for single dot with short decimal
+          isUSDFormat = (lastPart.length <= 2);
+        }
+      } else if (cleanString.includes(',')) {
+        // Only comma - if it's followed by 3 digits, it's likely thousands (USD format)
+        // If followed by 1-2 digits, it's likely decimal (BR/EU format)
+        const parts = cleanString.split(',');
+        const lastPart = parts[parts.length - 1];
+        isUSDFormat = (lastPart.length === 3 && parts.length > 1);
+      } else {
+        // No separators - use currency default
+        isUSDFormat = (detectedCurrency === 'USD');
+      }
+      
+      // 4. Parse based on detected format
+      let priceValue = 0;
+      if (isUSDFormat) {
+        // USD format: comma for thousands, dot for decimals
+        // Examples: 1,000.50 | 1,000,000.99 | 1000.50 | 1,000
+        if (cleanString.includes('.')) {
+          // Has dot = decimal separator exists
+          // Remove all commas (thousands separators)
+          cleanString = cleanString.replace(/,/g, '');
+        } else if (cleanString.includes(',')) {
+          // Only commas, no dot = thousands separators
+          // Remove all commas: 1,000 -> 1000
+          cleanString = cleanString.replace(/,/g, '');
+        }
+      } else {
         // Brazilian/European format: dot for thousands, comma for decimals
         // Examples: 1.000,50 | 1.000.000,99 | 1000,50 | 1.000
         if (cleanString.includes(',')) {
@@ -114,33 +171,21 @@ function processNode(textNode) {
             cleanString = cleanString.replace(/\./g, '');
           }
         }
-      } else {
-        // USD format: comma for thousands, dot for decimals
-        // Examples: 1,000.50 | 1,000,000.99 | 1000.50 | 1,000
-        if (cleanString.includes('.')) {
-          // Has dot = decimal separator exists
-          // Remove all commas (thousands separators)
-          cleanString = cleanString.replace(/,/g, '');
-        } else if (cleanString.includes(',')) {
-          // Only commas, no dot = thousands separators
-          // Remove all commas: 1,000 -> 1000
-          cleanString = cleanString.replace(/,/g, '');
-        }
       }
       
       priceValue = parseFloat(cleanString);
       
       if (isNaN(priceValue) || priceValue === 0) return match;
 
-      // 3. Normalize Price to USD (Base)
+      // 5. Normalize Price to USD (Base)
       const priceInUSD = priceValue / EXCHANGE_RATES[detectedCurrency];
 
-      // 4. Normalize User Salary to USD (Base)
+      // 6. Normalize User Salary to USD (Base)
       // Assuming 22 working days per month, 8 hours per day
       const salaryInUSD = userSalary / EXCHANGE_RATES[userCurrency];
       const dailyWageInUSD = salaryInUSD / 22;
 
-      // 5. Calculate Days
+      // 7. Calculate Days
       const daysCost = priceInUSD / dailyWageInUSD;
 
       // Formatting the result
