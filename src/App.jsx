@@ -100,6 +100,11 @@ const groupDomainsByBase = (domains) => {
   return groups
 }
 
+const getFaviconUrl = (domain) => {
+  // Use Google's favicon service
+  return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+}
+
 function App() {
   const [salary, setSalary] = useState('')
   const [currency, setCurrency] = useState('USD')
