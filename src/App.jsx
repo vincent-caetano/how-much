@@ -384,20 +384,22 @@ function App() {
           )}
         </div>
 
-        <div className="space-y-2 relative">
-          <Label htmlFor="salary" className="sr-only">Monthly Net Salary</Label>
-          <div className="absolute left-3 top-1 bottom-1 flex items-center text-base md:text-sm pointer-events-none z-10 text-black opacity-50 m-0">
-            {currencyDisplay}
+        <div className="space-y-2">
+          <div className="relative">
+            <Label htmlFor="salary" className="sr-only">Monthly Net Salary</Label>
+            <div className="absolute left-3 top-1 bottom-1 flex items-center text-base md:text-sm pointer-events-none z-10 text-black opacity-50 m-0">
+              {currencyDisplay}
+            </div>
+            <Input
+              id="salary"
+              type="text"
+              placeholder="0"
+              value={salary}
+              onChange={handleSalaryChange}
+              className={`pl-12 ${error.field === 'salary' ? 'border-destructive' : ''}`}
+              inputMode="numeric"
+            />
           </div>
-          <Input
-            id="salary"
-            type="text"
-            placeholder="0"
-            value={salary}
-            onChange={handleSalaryChange}
-            className={`pl-12 ${error.field === 'salary' ? 'border-destructive' : ''}`}
-            inputMode="numeric"
-          />
           {error.field === 'salary' && (
             <p className="text-sm text-destructive">{error.message}</p>
           )}
