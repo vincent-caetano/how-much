@@ -293,11 +293,11 @@ function App() {
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   role="combobox"
                   aria-expanded={open}
                   className={cn(
-                    "w-full justify-between",
+                    "w-full justify-between border-0 shadow-none",
                     error.field === 'currency' && 'border-destructive'
                   )}
                 >
@@ -373,6 +373,7 @@ function App() {
               onChange={handleSalaryChange}
               className={cn(
                 currencyDisplay !== '-' ? 'pl-12' : '',
+                'border-0 shadow-none',
                 error.field === 'salary' && 'border-destructive'
               )}
               inputMode="numeric"
@@ -382,7 +383,7 @@ function App() {
             )}
           </div>
 
-          <Button onClick={handleSave} className="w-full lowercase" size="default">
+          <Button onClick={handleSave} className="w-full lowercase border-0 shadow-none" size="default">
             save & apply
           </Button>
 
