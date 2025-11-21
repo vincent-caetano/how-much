@@ -541,14 +541,14 @@ function App() {
     const currencyExists = currencies.find(c => c.code === selectedCurrency)
     
     if (!selectedCurrency || !currencyExists) {
-      setError({ field: 'currency', message: 'Please select a valid currency' })
+      setError({ field: 'currency', message: t('pleaseSelectCurrency', language) })
       return
     }
 
     const salaryValue = parseFormattedNumber(salary, selectedCurrency)
 
     if (!salaryValue || salaryValue <= 0) {
-      setError({ field: 'salary', message: 'Please enter a valid salary' })
+      setError({ field: 'salary', message: t('pleaseEnterSalary', language) })
       return
     }
 
@@ -557,7 +557,7 @@ function App() {
         userSalary: salaryValue,
         userCurrency: selectedCurrency
       }, () => {
-        setStatus({ show: true, message: 'Settings saved! Refresh page to see changes.' })
+        setStatus({ show: true, message: t('settingsSaved', language) })
         setError({ field: null, message: '' })
         
         setTimeout(() => {
@@ -618,7 +618,7 @@ function App() {
     if (!normalizedSite) return
     
     if (whitelist.includes(normalizedSite)) {
-      setStatus({ show: true, message: 'Site already in whitelist' })
+      setStatus({ show: true, message: t('siteAlreadyInWhitelist', language) })
       setTimeout(() => setStatus({ show: false, message: '' }), 2000)
       return
     }
@@ -629,7 +629,7 @@ function App() {
     
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.set({ whitelist: newWhitelist }, () => {
-        setStatus({ show: true, message: 'Site added to whitelist' })
+        setStatus({ show: true, message: t('siteAddedToWhitelist', language) })
         setTimeout(() => setStatus({ show: false, message: '' }), 2000)
       })
     }
@@ -641,7 +641,7 @@ function App() {
     
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.set({ whitelist: newWhitelist }, () => {
-        setStatus({ show: true, message: 'Site removed from whitelist' })
+        setStatus({ show: true, message: t('siteRemovedFromWhitelist', language) })
         setTimeout(() => setStatus({ show: false, message: '' }), 2000)
       })
     }
@@ -657,11 +657,11 @@ function App() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <span className="text-lg">{selectedLanguage.flag}</span>
-              <span className="sr-only">Select language</span>
+              <span className="sr-only">{t('selectLanguage', language)}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Select Language</DropdownMenuLabel>
+            <DropdownMenuLabel>{t('selectLanguage', language)}</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {languages.map((lang) => (
               <DropdownMenuItem
@@ -689,13 +689,13 @@ function App() {
 
       <Tabs defaultValue="home" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="home">Home</TabsTrigger>
-          <TabsTrigger value="by-site">By Site</TabsTrigger>
+          <TabsTrigger value="home">{t('home', language)}</TabsTrigger>
+          <TabsTrigger value="by-site">{t('bySite', language)}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="home" className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="currency" className="sr-only">Choose a currency</Label>
+          <Label htmlFor="currency" className="sr-only">{t('chooseCurrency', language)}</Label>
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -710,16 +710,16 @@ function App() {
                 {selectedCurrency ? (
                   <span className="flex-1 truncate">{selectedCurrency.displayText}</span>
                 ) : (
-                  <span className="text-muted-foreground flex-1 w-full">Search or select currency...</span>
+                  <span className="text-muted-foreground flex-1 w-full">{t('searchOrSelectCurrency', language)}</span>
                 )}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[320px] p-0" align="start">
               <Command>
-                <CommandInput placeholder="Search currency..." className="h-9" />
+                <CommandInput placeholder={t('searchCurrency', language)} className="h-9" />
                 <CommandList>
-                  <CommandEmpty>No currency found.</CommandEmpty>
+                  <CommandEmpty>{t('noCurrencyFound', language)}</CommandEmpty>
                   <CommandGroup>
                     {currencies.map((curr) => (
                       <CommandItem
@@ -914,7 +914,7 @@ function App() {
                               className="h-6 w-6"
                             >
                               <X className="h-4 w-4" />
-                              <span className="sr-only">Remove site</span>
+                              <span className="sr-only">{t('removeSite', language)}</span>
                             </Button>
                           </div>
                         )}
