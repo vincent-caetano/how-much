@@ -72,6 +72,34 @@ const DEFAULT_WHITELIST = [
   'aliexpress.com'
 ]
 
+// Helper functions for grouping domains
+const getBaseDomain = (domain) => {
+  // Extract base domain name (e.g., "amazon" from "amazon.com", "amazon.co.uk")
+  const parts = domain.split('.')
+  if (parts.length <= 2) {
+    return parts[0]
+  }
+  // For multi-part TLDs (e.g., co.uk, com.au), take first two parts
+  // Check if second part is a common TLD component
+  const tldComponents = ['co', 'com', 'org', 'net', 'edu', 'gov']
+  if (tldComponents.includes(parts[parts.length - 2])) {
+    return parts[parts.length - 3] || parts[0]
+  }
+  return parts[parts.length - 2] || parts[0]
+}
+
+const groupDomainsByBase = (domains) => {
+  const groups = {}
+  domains.forEach(domain => {
+    const base = getBaseDomain(domain)
+    if (!groups[base]) {
+      groups[base] = []
+    }
+    groups[base].push(domain)
+  })
+  return groups
+}
+
 function App() {
   const [salary, setSalary] = useState('')
   const [currency, setCurrency] = useState('USD')
@@ -220,14 +248,19 @@ function App() {
           setLanguage(data.userLanguage)
         }
         
+        let whitelistToSet = []
         if (data.whitelist && Array.isArray(data.whitelist) && data.whitelist.length > 0) {
-          setWhitelist(data.whitelist)
+          whitelistToSet = data.whitelist
         } else {
           // Use default whitelist if none is saved
-          setWhitelist(DEFAULT_WHITELIST)
+          whitelistToSet = DEFAULT_WHITELIST
           // Save defaults to storage
           chrome.storage.local.set({ whitelist: DEFAULT_WHITELIST })
         }
+        setWhitelist(whitelistToSet)
+        // Expand all groups by default
+        const groups = groupDomainsByBase(whitelistToSet)
+        setExpandedGroups(new Set(Object.keys(groups).filter(key => groups[key].length > 1)))
       })
     } else {
       // Fallback when chrome.storage is not available (e.g., in development)
@@ -340,33 +373,6 @@ function App() {
       // If URL parsing fails, return cleaned input
       return url.toLowerCase().trim().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
     }
-  }
-  
-  const getBaseDomain = (domain) => {
-    // Extract base domain name (e.g., "amazon" from "amazon.com", "amazon.co.uk")
-    const parts = domain.split('.')
-    if (parts.length <= 2) {
-      return parts[0]
-    }
-    // For multi-part TLDs (e.g., co.uk, com.au), take first two parts
-    // Check if second part is a common TLD component
-    const tldComponents = ['co', 'com', 'org', 'net', 'edu', 'gov']
-    if (tldComponents.includes(parts[parts.length - 2])) {
-      return parts[parts.length - 3] || parts[0]
-    }
-    return parts[parts.length - 2] || parts[0]
-  }
-  
-  const groupDomainsByBase = (domains) => {
-    const groups = {}
-    domains.forEach(domain => {
-      const base = getBaseDomain(domain)
-      if (!groups[base]) {
-        groups[base] = []
-      }
-      groups[base].push(domain)
-    })
-    return groups
   }
   
   const toggleGroup = (groupName) => {
