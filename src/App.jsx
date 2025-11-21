@@ -3,7 +3,6 @@ import { Check, ChevronsUpDown, Globe } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Command,
@@ -332,95 +331,93 @@ function App() {
         </h1>
       </div>
 
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="currency" className="sr-only">Choose a currency</Label>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className={cn(
-                    "w-full justify-between",
-                    error.field === 'currency' && 'border-destructive'
-                  )}
-                >
-                  {selectedCurrency ? (
-                    <span className="flex-1 truncate">{selectedCurrency.displayText}</span>
-                  ) : (
-                    <span className="text-muted-foreground flex-1 w-full">Search or select currency...</span>
-                  )}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[320px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Search currency..." className="h-9" />
-                  <CommandList>
-                    <CommandEmpty>No currency found.</CommandEmpty>
-                    <CommandGroup>
-                      {currencies.map((curr) => (
-                        <CommandItem
-                          key={curr.code}
-                          value={`${curr.code} ${curr.country} ${curr.symbol}`}
-                          onSelect={() => handleCurrencySelect(curr.code)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              currency === curr.code ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {curr.displayText}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            {error.field === 'currency' && (
-              <p className="text-sm text-destructive">{error.message}</p>
-            )}
-          </div>
-
-          <div className="space-y-2 relative">
-            <Label htmlFor="salary" className="sr-only">Monthly Net Salary</Label>
-            <div className="absolute left-3 top-1 bottom-1 flex items-center text-base md:text-sm pointer-events-none z-10 text-black opacity-50 m-0">
-              {currencyDisplay}
-            </div>
-            <Input
-              id="salary"
-              type="text"
-              placeholder="0"
-              value={salary}
-              onChange={handleSalaryChange}
-              className={`pl-12 ${error.field === 'salary' ? 'border-destructive' : ''}`}
-              inputMode="numeric"
-            />
-            {error.field === 'salary' && (
-              <p className="text-sm text-destructive">{error.message}</p>
-            )}
-          </div>
-
-          <Button onClick={handleSave} className="w-full lowercase" size="default">
-            save & apply
-          </Button>
-
-          {status.show && (
-            <Alert variant="success" className="animate-in slide-in-from-top-5 duration-300">
-              <AlertDescription className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                {status.message}
-              </AlertDescription>
-            </Alert>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="currency" className="sr-only">Choose a currency</Label>
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className={cn(
+                  "w-full justify-between",
+                  error.field === 'currency' && 'border-destructive'
+                )}
+              >
+                {selectedCurrency ? (
+                  <span className="flex-1 truncate">{selectedCurrency.displayText}</span>
+                ) : (
+                  <span className="text-muted-foreground flex-1 w-full">Search or select currency...</span>
+                )}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[320px] p-0" align="start">
+              <Command>
+                <CommandInput placeholder="Search currency..." className="h-9" />
+                <CommandList>
+                  <CommandEmpty>No currency found.</CommandEmpty>
+                  <CommandGroup>
+                    {currencies.map((curr) => (
+                      <CommandItem
+                        key={curr.code}
+                        value={`${curr.code} ${curr.country} ${curr.symbol}`}
+                        onSelect={() => handleCurrencySelect(curr.code)}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            currency === curr.code ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {curr.displayText}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          {error.field === 'currency' && (
+            <p className="text-sm text-destructive">{error.message}</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="space-y-2 relative">
+          <Label htmlFor="salary" className="sr-only">Monthly Net Salary</Label>
+          <div className="absolute left-3 top-1 bottom-1 flex items-center text-base md:text-sm pointer-events-none z-10 text-black opacity-50 m-0">
+            {currencyDisplay}
+          </div>
+          <Input
+            id="salary"
+            type="text"
+            placeholder="0"
+            value={salary}
+            onChange={handleSalaryChange}
+            className={`pl-12 ${error.field === 'salary' ? 'border-destructive' : ''}`}
+            inputMode="numeric"
+          />
+          {error.field === 'salary' && (
+            <p className="text-sm text-destructive">{error.message}</p>
+          )}
+        </div>
+
+        <Button onClick={handleSave} className="w-full lowercase" size="default">
+          save & apply
+        </Button>
+
+        {status.show && (
+          <Alert variant="success" className="animate-in slide-in-from-top-5 duration-300">
+            <AlertDescription className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {status.message}
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
     </div>
   )
 }
