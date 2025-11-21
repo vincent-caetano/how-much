@@ -5,7 +5,7 @@ A Chrome/Edge browser extension that converts product prices into the number of 
 ## Features
 
 - 🔍 Automatically detects prices on web pages
-- 💰 Supports multiple currencies (USD, EUR, BRL)
+- 💰 Supports 100+ currencies via Exchange Rate API
 - 💵 Converts prices to your salary currency
 - ⏱️ Shows work days (or hours for small amounts)
 - 🔄 Works on dynamic pages (Amazon, infinite scroll, etc.)
@@ -69,7 +69,7 @@ Update `manifest.json` to include the "tabs" permission (needed for reloading ta
 1. **Set Your Salary:**
    - Click the extension icon in your browser toolbar
    - Enter your monthly net salary
-   - Select your salary currency (USD, EUR, or BRL)
+   - Select your salary currency from the dropdown (100+ currencies supported)
    - Click "Save & Apply"
 
 2. **View Time Costs:**
@@ -88,12 +88,16 @@ Update `manifest.json` to include the "tabs" permission (needed for reloading ta
 
 ### Exchange Rates
 
-The extension uses fixed exchange rates (stored in `content.js`):
-- USD: 1.0 (base)
-- EUR: 0.92 (1 USD = 0.92 EUR)
-- BRL: 5.00 (1 USD = 5.00 BRL)
+The extension uses real-time exchange rates from the [Exchange Rate API](https://www.exchangerate-api.com/docs/standard-requests) to fetch current conversion rates for all supported currencies.
 
-**Note:** These are approximate rates. For production use, consider integrating a real-time exchange rate API.
+### Supported Currencies
+
+The extension supports 100+ currencies with complete information including:
+- Country names
+- Currency symbols
+- Proper number formatting based on locale
+
+**Excluded Currencies:** Some currencies from the Exchange Rate API are excluded from the dropdown if they don't have complete country information in our mapping. These currencies may be added in the future if the user base grows and there's a demonstrated need for them.
 
 ### Price Detection
 
@@ -113,9 +117,7 @@ The extension uses regex patterns to detect prices in various formats:
 
 - ⚠️ **Icons folder and icon files are missing** - needs to be created
 - ⚠️ **File names don't match manifest** - files need to be renamed
-- ⚠️ **Missing "tabs" permission** - needed for tab reload functionality
-- ⚠️ **Fixed exchange rates** - consider using real-time API for production
-- ⚠️ **Limited currency support** - only USD, EUR, BRL currently supported
+- ⚠️ **Some currencies excluded** - currencies without complete country information are not shown in the dropdown. These may be added if user base grows and there's a demonstrated need.
 
 ## Browser Compatibility
 
