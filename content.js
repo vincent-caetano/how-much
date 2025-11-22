@@ -22,6 +22,7 @@ const US_MONTHLY_MINIMUM_WAGE = 1256.67;
 let userSalary = US_MONTHLY_MINIMUM_WAGE;
 let userCurrency = 'USD';
 let whitelist = [];
+let spacingMode = 'default'; // 'default', 'comfortable', 'compact'
 
 // Default whitelist sites for the extension
 const DEFAULT_WHITELIST = [
@@ -103,7 +104,7 @@ function isWhitelisted(domain) {
 }
 
 // Main entry point
-chrome.storage.local.get(['userSalary', 'userCurrency', 'whitelist'], (data) => {
+chrome.storage.local.get(['userSalary', 'userCurrency', 'whitelist', 'spacingMode'], (data) => {
   if (data.userSalary && data.userCurrency) {
     userSalary = parseFloat(data.userSalary);
     userCurrency = data.userCurrency;
@@ -111,6 +112,11 @@ chrome.storage.local.get(['userSalary', 'userCurrency', 'whitelist'], (data) => 
     // Set defaults if no saved settings
     userSalary = US_MONTHLY_MINIMUM_WAGE;
     userCurrency = 'USD';
+  }
+  
+  // Load spacing mode
+  if (data.spacingMode && ['default', 'comfortable', 'compact'].includes(data.spacingMode)) {
+    spacingMode = data.spacingMode;
   }
   
   // Load whitelist (normalize all domains by removing www. and converting to lowercase)
@@ -152,6 +158,19 @@ function init() {
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+  
+  // Listen for storage changes to update spacing mode dynamically
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.spacingMode) {
+      spacingMode = changes.spacingMode.newValue || 'default';
+      // Re-process the entire page with new spacing mode
+      // Remove processed markers and re-scan
+      document.querySelectorAll('[data-timecost-processed]').forEach(el => {
+        el.removeAttribute('data-timecost-processed');
+      });
+      scanAndConvert(document.body);
+    }
+  });
 }
 
 function loadGoogleFont(fontFamily, fontWeight) {
@@ -186,6 +205,107 @@ function scanAndConvert(rootNode) {
     if (text && PRICE_REGEX.test(text)) {
       processNode(node);
     }
+  }
+}
+
+// Hover tooltip management for comfortable mode
+let currentTooltip = null;
+
+function showHoverTooltip(event) {
+  const trigger = event.currentTarget;
+  const timeCost = trigger.getAttribute('data-timecost');
+  const originalPrice = trigger.getAttribute('data-original-price');
+  
+  // Remove existing tooltip if any
+  if (currentTooltip) {
+    currentTooltip.remove();
+  }
+  
+  // Create tooltip element
+  const tooltip = document.createElement('div');
+  tooltip.className = 'timecost-hover-tooltip';
+  tooltip.setAttribute('data-timecost-tooltip', 'true');
+  tooltip.innerHTML = `
+    <div style="padding: 12px;">
+      <div style="font-size: 14px; font-weight: 600; margin-bottom: 4px; color: hsl(var(--foreground, 0 0% 9.8%));">
+        ${originalPrice}
+      </div>
+      <div style="font-size: 12px; color: hsl(var(--muted-foreground, 0 0% 45.1%)); margin-bottom: 8px;">
+        Time cost
+      </div>
+      <div style="
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 100px;
+        background-color: #dafaa2;
+        color: #000;
+        font-size: 14px;
+        font-family: 'Boldonse', sans-serif;
+        font-weight: 700;
+        line-height: 1.2;
+      ">
+        ${timeCost}
+      </div>
+    </div>
+  `;
+  
+  // Style the tooltip (similar to shadcn hover-card)
+  tooltip.style.cssText = `
+    position: absolute;
+    z-index: 999999;
+    width: 280px;
+    border-radius: 8px;
+    border: 1px solid hsl(var(--border, 214.3 31.8% 91.4%));
+    background-color: hsl(var(--popover, 0 0% 100%));
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease-in-out;
+  `;
+  
+  // Add to body for proper positioning
+  document.body.appendChild(tooltip);
+  currentTooltip = tooltip;
+  
+  // Position tooltip
+  const rect = trigger.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+  
+  // Position above the trigger by default, adjust if not enough space
+  let top = rect.top + scrollY - tooltipRect.height - 8;
+  let left = rect.left + scrollX + (rect.width / 2) - (tooltipRect.width / 2);
+  
+  // Adjust if tooltip goes off screen
+  if (top < scrollY) {
+    // Show below instead
+    top = rect.bottom + scrollY + 8;
+  }
+  if (left < scrollX) {
+    left = scrollX + 8;
+  } else if (left + tooltipRect.width > scrollX + window.innerWidth) {
+    left = scrollX + window.innerWidth - tooltipRect.width - 8;
+  }
+  
+  tooltip.style.top = `${top}px`;
+  tooltip.style.left = `${left}px`;
+  
+  // Fade in
+  requestAnimationFrame(() => {
+    tooltip.style.opacity = '1';
+  });
+}
+
+function hideHoverTooltip(event) {
+  if (currentTooltip) {
+    currentTooltip.style.opacity = '0';
+    setTimeout(() => {
+      if (currentTooltip && currentTooltip.parentNode) {
+        currentTooltip.remove();
+      }
+      currentTooltip = null;
+    }, 150);
   }
 }
 
@@ -375,25 +495,58 @@ function processNode(textNode) {
       fragment.appendChild(document.createTextNode(beforeText));
     }
     
-    // Add the price match as text
-    fragment.appendChild(document.createTextNode(matchData.match));
-    
-    // Create and add the time cost span with styling
-    const timeCostSpan = document.createElement('span');
-    timeCostSpan.textContent = ` ${matchData.timeCost}`;
-    timeCostSpan.style.cssText = `
-      display: inline-block;
-      margin-left: 4px;
-      padding: 2px 6px;
-      border-radius: 100px;
-      background-color: #dafaa2;
-      color: #000;
-      font-size: 16px;
-      font-family: 'Boldonse', sans-serif;
-      font-weight: 700;
-      line-height: 1.2;
-    `;
-    fragment.appendChild(timeCostSpan);
+    if (spacingMode === 'compact') {
+      // Compact mode: Replace price with time cost
+      const timeCostSpan = document.createElement('span');
+      timeCostSpan.textContent = matchData.timeCost;
+      timeCostSpan.style.cssText = `
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 100px;
+        background-color: #dafaa2;
+        color: #000;
+        font-size: 16px;
+        font-family: 'Boldonse', sans-serif;
+        font-weight: 700;
+        line-height: 1.2;
+      `;
+      fragment.appendChild(timeCostSpan);
+    } else if (spacingMode === 'comfortable') {
+      // Comfortable mode: Show price, hover shows time cost in tooltip
+      const priceWrapper = document.createElement('span');
+      priceWrapper.style.cssText = 'position: relative; display: inline-block;';
+      priceWrapper.setAttribute('data-timecost-trigger', 'true');
+      priceWrapper.textContent = matchData.match;
+      
+      // Store time cost data for hover tooltip
+      priceWrapper.setAttribute('data-timecost', matchData.timeCost);
+      priceWrapper.setAttribute('data-original-price', matchData.match);
+      
+      // Add hover event listeners
+      priceWrapper.addEventListener('mouseenter', showHoverTooltip);
+      priceWrapper.addEventListener('mouseleave', hideHoverTooltip);
+      
+      fragment.appendChild(priceWrapper);
+    } else {
+      // Default mode: Show price + time cost side by side (current behavior)
+      fragment.appendChild(document.createTextNode(matchData.match));
+      
+      const timeCostSpan = document.createElement('span');
+      timeCostSpan.textContent = ` ${matchData.timeCost}`;
+      timeCostSpan.style.cssText = `
+        display: inline-block;
+        margin-left: 4px;
+        padding: 2px 6px;
+        border-radius: 100px;
+        background-color: #dafaa2;
+        color: #000;
+        font-size: 16px;
+        font-family: 'Boldonse', sans-serif;
+        font-weight: 700;
+        line-height: 1.2;
+      `;
+      fragment.appendChild(timeCostSpan);
+    }
     
     lastIndex = matchData.index + matchData.length;
   });

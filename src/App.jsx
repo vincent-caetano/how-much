@@ -1572,7 +1572,7 @@ function App() {
 
   const loadSavedSettings = useCallback(() => {
     if (typeof chrome !== 'undefined' && chrome.storage) {
-      chrome.storage.local.get(['userSalary', 'userCurrency', 'userLanguage', 'whitelist'], (data) => {
+      chrome.storage.local.get(['userSalary', 'userCurrency', 'userLanguage', 'whitelist', 'spacingMode'], (data) => {
         // Set default currency to USD if not saved
         if (data.userCurrency && currencyInfo[data.userCurrency]) {
           setCurrency(data.userCurrency)
@@ -1613,6 +1613,11 @@ function App() {
         // Expand all groups by default
         const groups = groupDomainsByBase(whitelistToSet)
         setExpandedGroups(new Set(Object.keys(groups).filter(key => groups[key].length > 1)))
+        
+        // Load spacing mode preference
+        if (data.spacingMode) {
+          setSpacingMode(data.spacingMode)
+        }
       })
     } else {
       // Fallback when chrome.storage is not available (e.g., in development)
@@ -1721,7 +1726,8 @@ function App() {
     if (typeof chrome !== 'undefined' && chrome.storage) {
       chrome.storage.local.set({
         userSalary: salaryValue,
-        userCurrency: selectedCurrency
+        userCurrency: selectedCurrency,
+        spacingMode: spacingMode
       }, () => {
         setStatus({ show: true, message: t('settingsSaved', language) })
         setError({ field: null, message: '' })
@@ -1736,6 +1742,18 @@ function App() {
       })
     }
   }
+  
+  // Save spacing mode immediately when it changes
+  useEffect(() => {
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ spacingMode: spacingMode }, () => {
+        // Reload active tab to apply changes
+        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
+          if(tabs[0]) chrome.tabs.reload(tabs[0].id)
+        })
+      })
+    }
+  }, [spacingMode])
 
   const handleLanguageChange = (langCode) => {
     setLanguage(langCode)
