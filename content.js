@@ -178,8 +178,24 @@ function scanAndConvert(rootNode) {
 function processNode(textNode) {
   const originalText = textNode.nodeValue;
   
-  // We replace the text content by parsing matches
-  const newText = originalText.replace(PRICE_REGEX, (match) => {
+  // Find all price matches with their positions
+  const matches = [];
+  let match;
+  const regex = new RegExp(PRICE_REGEX);
+  
+  while ((match = regex.exec(originalText)) !== null) {
+    matches.push({
+      match: match[0],
+      index: match.index,
+      length: match[0].length
+    });
+  }
+  
+  if (matches.length === 0) return;
+  
+  // Process each match to calculate time cost
+  const processedMatches = matches.map(matchData => {
+    const match = matchData.match;
     try {
       // 1. Identify currency of the Price Found on Page
       let detectedCurrency = 'USD'; // Default
@@ -281,7 +297,7 @@ function processNode(textNode) {
       
       priceValue = parseFloat(cleanString);
       
-      if (isNaN(priceValue) || priceValue === 0) return match;
+      if (isNaN(priceValue) || priceValue === 0) return null;
 
       // 5. Normalize Price to USD (Base)
       const priceInUSD = priceValue / EXCHANGE_RATES[detectedCurrency];
@@ -304,12 +320,12 @@ function processNode(textNode) {
         
         if (wholeHours === 0) {
           // If less than 1 hour, show only minutes
-          daysString = ` (${minutes}m)`;
+          daysString = `${minutes}m`;
         } else {
           // Show hours and minutes in 0h0m format
           const hoursStr = wholeHours.toString();
           const minutesStr = minutes.toString();
-          daysString = ` (${hoursStr}h${minutesStr}m)`;
+          daysString = `${hoursStr}h${minutesStr}m`;
         }
       } else {
         // If 1 day or more, show days and hours in 0d0h format
@@ -318,20 +334,64 @@ function processNode(textNode) {
         const hours = Math.round(remainingDays * 8);
         const daysStr = wholeDays.toString();
         const hoursStr = hours.toString();
-        daysString = ` (${daysStr}d${hoursStr}h)`;
+        daysString = `${daysStr}d${hoursStr}h`;
       }
 
-      return `${match} ${daysString}`;
+      return {
+        ...matchData,
+        timeCost: daysString
+      };
 
     } catch (e) {
       console.error("TimeCost Error parsing:", match, e);
-      return match; // Return original if error
+      return null;
     }
+  }).filter(m => m !== null);
+  
+  if (processedMatches.length === 0) return;
+  
+  // Create a document fragment to build the new content
+  const fragment = document.createDocumentFragment();
+  let lastIndex = 0;
+  
+  processedMatches.forEach((matchData, idx) => {
+    // Add text before the match
+    if (matchData.index > lastIndex) {
+      const beforeText = originalText.substring(lastIndex, matchData.index);
+      fragment.appendChild(document.createTextNode(beforeText));
+    }
+    
+    // Add the price match as text
+    fragment.appendChild(document.createTextNode(matchData.match));
+    
+    // Create and add the time cost span with styling
+    const timeCostSpan = document.createElement('span');
+    timeCostSpan.textContent = ` ${matchData.timeCost}`;
+    timeCostSpan.style.cssText = `
+      display: inline-block;
+      margin-left: 4px;
+      padding: 2px 6px;
+      border: 1px solid #4a5568;
+      border-radius: 4px;
+      background-color: #2d3748;
+      color: #68d391;
+      font-size: 0.9em;
+      font-weight: 500;
+      line-height: 1.2;
+    `;
+    fragment.appendChild(timeCostSpan);
+    
+    lastIndex = matchData.index + matchData.length;
   });
-
-  if (newText !== originalText) {
-    textNode.nodeValue = newText;
-    textNode.parentElement.setAttribute('data-timecost-processed', 'true');
+  
+  // Add remaining text after last match
+  if (lastIndex < originalText.length) {
+    fragment.appendChild(document.createTextNode(originalText.substring(lastIndex)));
   }
+  
+  // Replace the text node with the fragment
+  const parent = textNode.parentNode;
+  parent.replaceChild(fragment, textNode);
+  parent.setAttribute('data-timecost-processed', 'true');
 }
 
